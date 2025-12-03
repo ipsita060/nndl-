@@ -1,0 +1,41 @@
+import tensorflow as tf
+
+# Activation functions
+def relu(x):
+    return tf.nn.relu(x)
+
+def sigmoid(x):
+    return tf.nn.sigmoid(x)
+
+# Define weights as TENSORS
+W1 = tf.constant([0.8, 0.1, 0.5], dtype=tf.float32)   
+W2 = tf.constant([0.7, 0.9, 0.3], dtype=tf.float32)   
+Wout = tf.constant(1.0, dtype=tf.float32)             
+
+def forward(x):
+
+    # Hidden Layer 1 : ReLU
+    z1 = tf.reduce_sum(x * W1)     
+    h1 = relu(z1)
+
+    # Hidden Layer 2 : Sigmoid
+    z2 = h1 * tf.reduce_sum(W2)
+    h2 = sigmoid(z2)
+
+    # Output : Sigmoid
+    z3 = h2 * Wout
+    output = sigmoid(z3)
+
+    return output
+
+x = tf.constant([1.0, 0.0, 1.0], dtype=tf.float32)
+
+
+result = forward(x)
+print("Final Output:", float(result))
+
+# SPAM CHECK (threshold = 0.5)
+if result >= 0.5:
+    print("Spam Detected: YES (Probability >= 0.5)")
+else:
+    print("Spam Detected: NO (Probability < 0.5)")
