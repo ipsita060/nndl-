@@ -15,7 +15,7 @@ Wout = 1                             # Output weight
 def forward(x):
 
     # Hidden Layer 1 : ReLU
-    z1 = np.sum(x * W1)        # removed + b1
+    z1 = np.sum(x * W1)        
     h1 = relu(z1)
 
     # Hidden Layer 2 : Sigmoid
