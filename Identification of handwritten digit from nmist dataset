@@ -1,41 +1,50 @@
-# 1. Import the necessary libraries
-import pandas as pd
-import numpy as np
-from tensorflow.keras import layers, models
-from sklearn.model_selection import train_test_split
+import tensorflow as tf
+from tensorflow.keras import layers
 
-# 2. Load the dataset
-data = pd.read_csv("mnist_train.csv")
 
-# 3. Split into features and labels
-X = data.drop("label", axis=1).values  # all pixel columns
-y = data["label"].values               # the label column
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
-# 4. Scale the pixel values to be between 0 and 1
-X = X.astype("float32") / 255.0
+x_train = x_train.astype("float32") / 255.0
+x_test  = x_test.astype("float32") / 255.0
 
-# 5. Split into training and validation sets (e.g., 80% train, 20% validation)
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# 6. Build a simple neural network model
-model = models.Sequential([
-    layers.Input(shape=(784,)),            # Input layer (28x28 pixels = 784)
-    layers.Dense(128, activation="relu"),  # Hidden layer
-    layers.Dense(64, activation="relu"),   # Another hidden layer
-    layers.Dense(10, activation="softmax") # Output layer (10 classes for digits 0-9)
+x_train = x_train[..., None]
+x_test  = x_test[..., None]
+
+
+model = tf.keras.Sequential([
+    layers.Conv2D(32, (3, 3), activation="relu", input_shape=(28, 28, 1)),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation="relu"),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(64, activation="relu"),
+    layers.Dense(10, activation="softmax")
 ])
 
-# 7. Compile the model
-model.compile(optimizer="adam",
-              loss="sparse_categorical_crossentropy",
-              metrics=["accuracy"])
 
-# 8. Train the model
-model.fit(X_train, y_train,
-          validation_data=(X_val, y_val),
-          epochs=10,
-          batch_size=128)
+model.compile(
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
 
+#Train
+model.fit(x_train, y_train, epochs=5, batch_size=64, verbose=1)
 
-val_loss, val_acc = model.evaluate(X_val, y_val)
-print(f"Validation accuracy: {val_acc:.4f}")
+#Evaluate on test set
+loss, acc = model.evaluate(x_test, y_test, verbose=0)
+print("Test accuracy:", acc)
+
+#Sample prediction
+import numpy as np
+idx = 0
+img = x_test[idx:idx+1]
+true_label = y_test[idx]
+
+probs = model.predict(img, verbose=0)[0]
+pred_class = np.argmax(probs)
+
+print("True label:", true_label)
+print("Predicted label:", pred_class)
+print("Class probabilities:", probs)
