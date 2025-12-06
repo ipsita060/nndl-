@@ -1,50 +1,67 @@
+ # 1. Import libraries
 import tensorflow as tf
-from tensorflow.keras import layers
+from tensorflow.keras import layers, models
+import numpy as np
+import matplotlib.pyplot as plt
 
-
+# 2. Load the MNIST dataset
+# This automatically downloads it the first time
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
+print("Train images shape:", x_train.shape)  # (60000, 28, 28)
+print("Test images shape:", x_test.shape)    # (10000, 28, 28)
+
+# 3. Normalize pixel values to [0, 1]
 x_train = x_train.astype("float32") / 255.0
 x_test  = x_test.astype("float32") / 255.0
 
+# 4. Flatten 28x28 images into 784-length vectors
+x_train_flat = x_train.reshape(-1, 28 * 28)  # (60000, 784)
+x_test_flat  = x_test.reshape(-1, 28 * 28)   # (10000, 784)
 
-x_train = x_train[..., None]
-x_test  = x_test[..., None]
-
-
-model = tf.keras.Sequential([
-    layers.Conv2D(32, (3, 3), activation="relu", input_shape=(28, 28, 1)),
-    layers.MaxPooling2D((2, 2)),
-    layers.Conv2D(64, (3, 3), activation="relu"),
-    layers.MaxPooling2D((2, 2)),
-    layers.Flatten(),
-    layers.Dense(64, activation="relu"),
-    layers.Dense(10, activation="softmax")
+# 5. Build a simple feedforward neural network
+model = models.Sequential([
+    layers.Input(shape=(784,)),             # 784 input features
+    layers.Dense(128, activation="relu"),   # Hidden layer 1
+    layers.Dense(64, activation="relu"),    # Hidden layer 2
+    layers.Dense(10, activation="softmax")  # Output: 10 classes (0–9)
 ])
 
-
+# 6. Compile the model
 model.compile(
     optimizer="adam",
     loss="sparse_categorical_crossentropy",
     metrics=["accuracy"]
 )
 
-#Train
-model.fit(x_train, y_train, epochs=5, batch_size=64, verbose=1)
+# 7. Train the model
+history = model.fit(
+    x_train_flat, y_train,
+    epochs=5,            # you can increase to 10 for better accuracy
+    batch_size=64,
+    validation_split=0.1
+)
 
-#Evaluate on test set
-loss, acc = model.evaluate(x_test, y_test, verbose=0)
-print("Test accuracy:", acc)
+# 8. Evaluate on the test set
+test_loss, test_acc = model.evaluate(x_test_flat, y_test, verbose=0)
+print(f"\nTest accuracy: {test_acc:.4f}")
 
-#Sample prediction
-import numpy as np
-idx = 0
-img = x_test[idx:idx+1]
+# 9. Make a sample prediction
+idx = 0  # change this index to see different test images
+sample_img = x_test[idx]
+sample_img_flat = x_test_flat[idx:idx+1]  # keep batch dimension
 true_label = y_test[idx]
 
-probs = model.predict(img, verbose=0)[0]
+# Predict probabilities and class
+probs = model.predict(sample_img_flat, verbose=0)[0]
 pred_class = np.argmax(probs)
 
-print("True label:", true_label)
+print("\nTrue label:", true_label)
 print("Predicted label:", pred_class)
 print("Class probabilities:", probs)
+
+# 10. Show the image
+plt.imshow(sample_img, cmap="gray")
+plt.title(f"True: {true_label}, Predicted: {pred_class}")
+plt.axis("off")
+plt.show()
