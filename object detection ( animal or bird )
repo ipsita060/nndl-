@@ -1,89 +1,64 @@
 import tensorflow as tf
 import numpy as np
-import cv2
+from PIL import Image
+from google.colab import files
 
-from tensorflow.keras.applications.mobilenet_v2 import (
-    MobileNetV2,
-    preprocess_input,
-    decode_predictions,
-)
+# ---------------- CATEGORY KEYWORDS ----------------
 
-# Load pretrained ImageNet model
-model = MobileNetV2(weights="imagenet")
-
-# Keyword groups
 BIRD_KEYWORDS = [
-    "bird", "parrot", "eagle", "vulture", "sparrow", "duck", "goose",
-    "hen", "penguin", "owl", "swan", "kingfisher", "kiwi"
-]
-
-INSECT_KEYWORDS = [
-    "bee", "ant", "fly", "mosquito", "dragonfly", "beetle", "butterfly",
-    "moth", "wasp", "grasshopper", "cockroach", "ladybug"
+    "bird", "parrot", "eagle", "sparrow", "penguin", "owl", "duck",
+    "goose", "hen", "kingfisher", "swan", "vulture"
 ]
 
 ANIMAL_KEYWORDS = [
-    "dog", "cat", "cow", "horse", "lion", "tiger", "wolf", "fox", "monkey",
-    "bear", "elephant", "zebra", "giraffe", "camel", "goat", "sheep",
-    "pig", "deer", "rabbit", "hamster", "panda", "rat", "mouse"
+    "dog", "cat", "cow", "horse", "lion", "tiger", "wolf", "fox",
+    "monkey", "bear", "elephant", "zebra", "giraffe", "camel",
+    "goat", "sheep", "deer", "rabbit", "mouse", "rat", "hamster",
+    "panda"
+]
+
+FLOWER_KEYWORDS = [
+    "daisy", "sunflower", "rose", "tulip", "lily", "lotus", "orchid",
+    "dandelion", "marigold"
 ]
 
 
-def group_from_label(label: str):
-    """Return animal/bird/insect/unknown based on ImageNet label."""
-    name = label.lower()
+def classify_group(label_name):
+    name = label_name.lower()
 
-    if any(k in name for k in INSECT_KEYWORDS):
-        return "INSECT"
-
+    if any(k in name for k in FLOWER_KEYWORDS):
+        return "FLOWER"
     if any(k in name for k in BIRD_KEYWORDS):
         return "BIRD"
-
     if any(k in name for k in ANIMAL_KEYWORDS):
         return "ANIMAL"
 
     return "UNKNOWN"
 
 
-# ------------------------------
-# MAIN PROGRAM
-# ------------------------------
+# ---------------- MAIN PROGRAM ----------------
 
-# Ask user for image path
-image_path = input("Enter image file path: ")  # e.g., cat.jpg
+# Upload image from user
+uploaded = files.upload()
+img_path = list(uploaded.keys())[0]
 
-# Load image
-img_bgr = cv2.imread(image_path)
-if img_bgr is None:
-    raise ValueError("❌ Cannot read image! Check the path again.")
+# Load and resize image for MobileNetV2
+img = Image.open(img_path).resize((224, 224))
+img_array = np.expand_dims(np.array(img) / 255.0, axis=0)
 
-# Convert BGR → RGB
-img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+# Load MobileNetV2 pretrained model
+model = tf.keras.applications.MobileNetV2(weights="imagenet")
 
-# Resize to 224×224 (required by MobileNetV2)
-img_resized = cv2.resize(img_rgb, (224, 224))
+# Predict top ImageNet class
+pred = model.predict(img_array)
+decoded = tf.keras.applications.mobilenet.decode_predictions(pred, top=1)[0][0]
 
-# Prepare for model
-x = img_resized.astype("float32")
-x = np.expand_dims(x, 0)
-x = preprocess_input(x)
+imagenet_label = decoded[1]
+confidence = decoded[2]
 
-# Predict using model
-pred = model.predict(x, verbose=0)
+# Classify into ANIMAL / BIRD / FLOWER
+group = classify_group(imagenet_label)
 
-# Decode top-5 ImageNet predictions
-decoded = decode_predictions(pred, top=5)[0]
-
-print("\nTop 5 predictions:")
-for i, (_, label, prob) in enumerate(decoded, start=1):
-    print(f"{i}. {label:20s} prob={prob:.3f}")
-
-# Decide final category
-final_group = "UNKNOWN"
-for (_, label, prob) in decoded:
-    group = group_from_label(label)
-    if group != "UNKNOWN":
-        final_group = group
-        break
-
-print("\nFinal classification:", final_group)
+print("ImageNet Prediction:", imagenet_label)
+print("Confidence:", round(confidence * 100, 2), "%")
+print("\nFinal Category:", group)
