@@ -1,0 +1,38 @@
+import numpy as np
+
+# Activation function
+def relu(x):
+    return np.maximum(0, x)
+
+# Huber Loss function
+def huber_loss(y_true, y_pred, delta=1.0):
+    error = y_true - y_pred
+    if abs(error) <= delta:
+        return 0.5 * (error ** 2)
+    else:
+        return delta * (abs(error) - 0.5 * delta)
+
+X = np.array([1.0, 0.5, -1.0])
+# Weights
+# Input → Hidden (3x3)
+W1 = np.array([
+    [0.2, -0.1, 0.4],
+    [0.7, 0.3, -0.5],
+    [-0.3, 0.8, 0.1]
+])
+
+# Hidden → Output (3x1)
+W2 = np.array([0.5, -0.6, 0.2])
+# Forward pass
+# Hidden layer
+hidden_input = np.dot(X, W1)
+hidden_output = relu(hidden_input)
+predicted_output = np.dot(hidden_output, W2)
+# True output
+y_true = 1.5
+# Calculate Huber Loss
+loss = huber_loss(y_true, predicted_output)
+# Print results
+print("Hidden layer output:", hidden_output)
+print("Predicted output:", predicted_output)
+print("Huber Loss:", loss)
